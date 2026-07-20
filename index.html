@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controller RAS - Trattativa & Negoziazione v2.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .perspective { perspective: 1500px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .nav-zone {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 15%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: background 0.3s;
+            cursor: pointer;
+        }
+        .nav-zone:hover { background: rgba(255,255,255,0.02); }
+        @media (max-width: 768px) { .nav-zone { width: 10%; } }
+    </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen flex items-center justify-center font-sans overflow-hidden">
+    <div id="root" class="w-full h-screen flex items-center justify-center"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const negotiationData = [
+            { id: 1, en: "Leverage", audit: "Qual è la mia leva reale in questo momento?", it: "Leva (Vantaggio)", action: "Identifica il punto di forza non ancora sfruttato." },
+            { id: 2, en: "Deadlock", audit: "È uno stallo tecnico o una tattica dilatoria?", it: "Stallo", action: "Proponi una variabile esterna per sbloccare." },
+            { id: 3, en: "Stakeholder", audit: "Chi decide realmente oltre al mio interlocutore?", it: "Parte interessata", action: "Mappa la catena decisionale dell'azienda." },
+            { id: 4, en: "Counteroffer", audit: "È basata su dati o su un gioco al ribasso?", it: "Controproposta", action: "Verifica la coerenza con i dati di mercato." },
+            { id: 5, en: "Bottom line", audit: "Qual è la mia soglia di rottura non negoziabile?", it: "Punto fermo", action: "Conferma che non stai cedendo sotto pressione." },
+            { id: 6, en: "Bias", audit: "Quale pregiudizio sta inquinando la mia analisi?", it: "Distorsione", action: "Rielabora i fatti in modo neutro senza opinioni." },
+            { id: 7, en: "Commitment", audit: "Questo impegno è vincolante o vago?", it: "Impegno", action: "Richiedi formalizzazione scritta se il termine è vago." },
+            { id: 8, en: "Breakthrough", audit: "Ho trovato il punto di svolta per il processo?", it: "Svolta", action: "Ottimizza subito il processo usando questa variabile." },
+            { id: 9, en: "Rapport", audit: "C'è fiducia o solo cortesia formale?", it: "Sintonia / Relazione", action: "Usa l'ascolto attivo per abbassare le barriere." },
+            { id: 10, en: "Anchoring", audit: "La prima cifra lanciata sta condizionando il mio giudizio?", it: "Ancoraggio", action: "Ritorna ai dati oggettivi per de-ancorarti." },
+            { id: 11, en: "BATNA", audit: "Se questo accordo salta, qual è la mia reale alternativa?", it: "Migliore alternativa", action: "Valuta se l'accordo attuale è peggiore del non-accordo." },
+            { id: 12, en: "Concession", audit: "Cosa ottengo in cambio di questa rinuncia?", it: "Concessione", action: "Non cedere nulla senza un contraccambio di valore." },
+            { id: 13, en: "Escalation", audit: "Il conflitto sta aumentando per ego o per strategia?", it: "Escalation", action: "Riporta il focus sugli interessi, non sulle posizioni." },
+            { id: 14, en: "Frame", audit: "In quale contesto sto inquadrando il problema?", it: "Inquadramento", action: "Cambia prospettiva per trovare soluzioni creative." },
+            { id: 15, en: "Incentives", audit: "Cosa spinge realmente l'altra parte ad agire?", it: "Incentivi", action: "Allinea la tua proposta ai loro driver di guadagno." },
+            { id: 16, en: "Mandate", audit: "Ho il potere decisionale per chiudere o devo riferire?", it: "Mandato", action: "Chiarisci i tuoi limiti prima di impegnarti." },
+            { id: 17, en: "Pipeline", audit: "Quante altre opportunità concrete ho in coda?", it: "Flusso di opportunità", action: "Se la pipeline è vuota, stai negoziando con paura." },
+            { id: 18, en: "Quota", audit: "Questo accordo è necessario per i miei target?", it: "Obiettivo minimo", action: "Non sacrificare il margine solo per fare volume." },
+            { id: 19, en: "Scalability", audit: "Questa soluzione può crescere o è limitata?", it: "Scalabilità", action: "Pensa a lungo termine, non solo al task odierno." },
+            { id: 20, en: "Synergy", audit: "1+1 fa più di 2 in questo accordo?", it: "Sinergia", action: "Trova il valore aggiunto che solo la collaborazione crea." },
+            { id: 21, en: "Trade-off", audit: "A cosa sto rinunciando per ottenere questo?", it: "Compromesso", action: "Assicurati che lo scambio sia equo nel lungo periodo." },
+            { id: 22, en: "Upsell", audit: "C'è un valore extra che posso offrire ora?", it: "Vendita aggiuntiva", action: "Aumenta il valore medio del contratto risolvendo più problemi." },
+            { id: 23, en: "Validation", audit: "I dati presentati sono verificabili?", it: "Validazione", action: "Richiedi prove concrete, non basarti sulla parola." },
+            { id: 24, en: "Yield", audit: "Qual è il rendimento reale di questa operazione?", it: "Resa", action: "Calcola il ROI al netto del tempo speso." },
+            { id: 25, en: "Zero-sum", audit: "Sto cercando di vincere o di creare valore?", it: "Somma zero", action: "Esci dalla logica 'chi vince perde' per negoziare meglio." }
+        ];
+
+        function App() {
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [isFlipped, setIsFlipped] = useState(false);
+
+            const nextCard = (e) => {
+                if(e) e.stopPropagation();
+                setIsFlipped(false);
+                setCurrentIndex((prev) => (prev + 1) % negotiationData.length);
+            };
+
+            const prevCard = (e) => {
+                if(e) e.stopPropagation();
+                setIsFlipped(false);
+                setCurrentIndex((prev) => (prev - 1 + negotiationData.length) % negotiationData.length);
+            };
+
+            const playAudio = (e) => {
+                e.stopPropagation();
+                const utterance = new SpeechSynthesisUtterance(negotiationData[currentIndex].en);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.8;
+                window.speechSynthesis.speak(utterance);
+            };
+
+            // Keyboard navigation
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === 'ArrowRight') nextCard();
+                    if (e.key === 'ArrowLeft') prevCard();
+                    if (e.key === ' ' || e.key === 'Enter') setIsFlipped(!isFlipped);
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [currentIndex, isFlipped]);
+
+            const card = negotiationData[currentIndex];
+
+            return (
+                <div className="relative w-full h-full flex flex-col items-center justify-center px-4 md:px-24">
+                    
+                    {/* Lateral Navigation Zones (from immagine_3.png red circles) */}
+                    <div className="nav-zone left-0" onClick={prevCard}>
+                        <i className="fas fa-chevron-left text-zinc-800 text-4xl opacity-20 hover:opacity-100 transition-opacity"></i>
+                    </div>
+                    <div className="nav-zone right-0" onClick={nextCard}>
+                        <i className="fas fa-chevron-right text-zinc-800 text-4xl opacity-20 hover:opacity-100 transition-opacity"></i>
+                    </div>
+
+                    {/* Header Info */}
+                    <div className="absolute top-8 left-8 right-8 flex justify-between items-center z-20">
+                        <h1 className="text-xl font-black tracking-tighter text-zinc-600 uppercase">RAS NEGOTIATOR <span className="text-zinc-800">V2.1</span></h1>
+                        <div className="bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-xl text-sm font-mono shadow-xl">
+                            <span className="text-indigo-500 font-bold">{currentIndex + 1}</span> 
+                            <span className="text-zinc-600 mx-2">/</span> 
+                            <span className="text-zinc-400">{negotiationData.length}</span>
+                        </div>
+                    </div>
+
+                    {/* Main Card Container */}
+                    <div className="w-full max-w-4xl flex flex-col items-center gap-12 z-20">
+                        <div 
+                            className="perspective w-full h-[450px] cursor-pointer group"
+                            onClick={() => setIsFlipped(!isFlipped)}
+                        >
+                            <div className={`relative w-full h-full duration-700 preserve-3d shadow-2xl rounded-[40px] ${isFlipped ? 'rotate-y-180' : ''}`}>
+                                
+                                {/* FRONT: Term and Audit (Highlighted in image_3) */}
+                                <div className="absolute w-full h-full bg-zinc-900 border-[3px] border-zinc-800 rounded-[40px] flex flex-col items-center justify-between p-12 backface-hidden">
+                                    <div className="mt-4 text-sm font-bold text-zinc-500 tracking-[0.3em] uppercase">Inbound Signal</div>
+                                    
+                                    <div className="flex flex-col items-center">
+                                        <div className="text-6xl md:text-8xl font-black mb-8 tracking-tight text-white group-hover:scale-105 transition-transform duration-500">{card.en}</div>
+                                        <div className="w-24 h-1 bg-indigo-600 rounded-full mb-8 opacity-50"></div>
+                                    </div>
+
+                                    <div className="w-full bg-black/30 border border-zinc-800/50 p-6 rounded-2xl text-center">
+                                        <div className="flex items-center justify-center gap-3 text-indigo-400 text-xs font-black uppercase tracking-widest mb-3">
+                                            <i className="fas fa-microchip animate-pulse"></i>
+                                            RAS Audit Protocol
+                                        </div>
+                                        <p className="text-xl md:text-2xl text-zinc-300 italic font-medium leading-relaxed">
+                                            "{card.audit}"
+                                        </p>
+                                    </div>
+
+                                    <button 
+                                        onClick={playAudio}
+                                        className="p-5 bg-zinc-800 hover:bg-white hover:text-black rounded-full transition-all active:scale-90 shadow-lg"
+                                    >
+                                        <i className="fas fa-volume-up text-2xl"></i>
+                                    </button>
+                                </div>
+
+                                {/* BACK: Action and Meaning */}
+                                <div className="absolute w-full h-full bg-indigo-600 border-[3px] border-indigo-400 rounded-[40px] flex flex-col items-center justify-center p-12 backface-hidden rotate-y-180">
+                                    <div className="text-sm uppercase tracking-[0.4em] text-indigo-200 mb-4 font-black">Strategic Translation</div>
+                                    <div className="text-5xl md:text-7xl font-black mb-12 text-white drop-shadow-lg text-center">{card.it}</div>
+                                    
+                                    <div className="bg-black/20 backdrop-blur-md p-8 rounded-3xl text-center border border-white/20 w-full max-w-2xl">
+                                        <div className="text-xs uppercase text-indigo-100 mb-3 font-black tracking-widest opacity-80 underline decoration-2 underline-offset-4">Protocollo Operativo</div>
+                                        <p className="text-2xl md:text-3xl font-bold leading-tight text-white">{card.action}</p>
+                                    </div>
+                                    
+                                    <div className="mt-10 text-indigo-200/50 text-xs font-mono uppercase tracking-widest">Click to Re-calibrate</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer Controls */}
+                        <div className="flex flex-col items-center gap-6">
+                            <div className="flex items-center space-x-20">
+                                <button onClick={prevCard} className="group flex flex-col items-center gap-2">
+                                    <i className="fas fa-arrow-left text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span className="text-[10px] font-black uppercase text-zinc-800 tracking-tighter">Prev</span>
+                                </button>
+                                
+                                <div className="px-6 py-2 border border-zinc-800 rounded-full text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em]">
+                                    {isFlipped ? "Sistema in Azione" : "Analisi di Input"}
+                                </div>
+
+                                <button onClick={nextCard} className="group flex flex-col items-center gap-2">
+                                    <i className="fas fa-arrow-right text-3xl text-zinc-700 group-hover:text-indigo-500 transition-colors"></i>
+                                    <span className="text-[10px] font-black uppercase text-zinc-800 tracking-tighter">Next</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="absolute bottom-6 text-[10px] text-zinc-800 font-bold uppercase tracking-[0.3em] text-center w-full">
+                        Cognitive Control Interface • No-Bias Logic • 2024
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
